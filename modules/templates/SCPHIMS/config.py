@@ -474,8 +474,8 @@ def config(settings):
         else:
             s3db.dvr_case.organisation_id.default = SCI
 
-        mobile_list_fields = [#"project_case_activity.activity_id",
-                              "project_activity.name",
+        mobile_list_fields = [# No need for Mobile client to know which Activity a Case is linked to
+                              #"project_case_activity.activity_id$name",
                               "dvr_case.reference",
                               "dvr_case.date",
                               "first_name",
@@ -486,15 +486,28 @@ def config(settings):
                               "person_details.disabled",
                               "phone.value",
                               "email.value",
-                              "address.location_id$L1",
-                              "address.location_id$L2",
-                              "address.location_id$L3",
-                              "address.location_id$L4",
+                              # @ToDo: Use just parent in Mobile LocationSelector
+                              #"address.location_id$L1",
+                              #"address.location_id$L2",
+                              #"address.location_id$L3",
+                              #"address.location_id$L4",
+                              "address.location_id$parent",
+                              # Restore once list_fields working
+                              #"address.location_id$parent$uuid",
                               "address.location_id$addr_street",
                               "dvr_case.comments",
                               ]
 
         s3db.configure("pr_person",
+                       # TESTING - remove when done
+                       #list_fields = [#"address.location_id",
+                       #               #"address.location_id$id",
+                       #               #"address.location_id$uuid",
+                       #               #"address.location_id$parent",
+                       #               #"address.location_id$parent$id",
+                       #               "address.location_id$parent$name",
+                       #               #"address.location_id$parent$uuid",
+                       #               ],
                        mobile_list_fields = mobile_list_fields,
                        )
 
@@ -744,6 +757,7 @@ def config(settings):
     settings.project.activity_sectors = True
     settings.project.codes = True
     settings.project.event_activities = True
+    settings.project.event_projects = True
     settings.project.hazards = False
     settings.project.hfa = False
     settings.project.programmes = True
@@ -766,16 +780,21 @@ def config(settings):
 
         from s3 import S3SQLCustomForm, S3SQLInlineComponent
 
-        crud_form = S3SQLCustomForm("name",
-                                    "date",
-                                    "status_id",
-                                    S3SQLInlineComponent("sector_activity",
-                                                         label = T("Sectors"),
-                                                         fields = [("", "sector_id")],
-                                                         ),
-                                    "location_id",
-                                    "comments",
-                                    )
+        crud_fields = ["name",
+                       "date",
+                       "status_id",
+                       S3SQLInlineComponent("sector_activity",
+                                            label = T("Sectors"),
+                                            fields = [("", "sector_id")],
+                                            ),
+                       "location_id",
+                       "comments",
+                       ]
+
+        if current.auth.s3_logged_in():
+            crud_fields.insert(0, "project_id")
+
+        crud_form = S3SQLCustomForm(*crud_fields)
 
         list_fields = ["name",
                        "date",
